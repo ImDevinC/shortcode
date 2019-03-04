@@ -1,4 +1,4 @@
-module github.com/imdevinc/url_shortener
+module url_shortener
 
 require (
 	github.com/aws/aws-lambda-go v1.8.2

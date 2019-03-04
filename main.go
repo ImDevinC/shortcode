@@ -3,15 +3,17 @@ package main
 import (
 	b64 "encoding/base64"
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"strings"
 
+	"url_shortener/db"
+
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
-	"github.com/imdevinc/url_shortener/db"
 )
 
 var errorLogger = log.New(os.Stderr, "ERROR", log.Llongfile)
@@ -24,7 +26,7 @@ type NewLinkRequest struct {
 
 func getLinkFromShortCode(database *db.Database, code string) (events.APIGatewayProxyResponse, error) {
 	code = strings.TrimPrefix(code, "/")
-	link, err := database.GetShortLink(code)
+	link, err := database.GetShortCode(code)
 	if err != nil {
 		return serverError(err)
 	}
@@ -53,8 +55,8 @@ func createLinkWithRandomShortCode(database *db.Database, uri string) (string, e
 	count := 0
 	var finalCode string
 	for count < 5 {
-		code := db.GenerateShortCode(5)
-		err := database.InsertShortLink(uri, code)
+		code := db.GenerateShortCode(5, true)
+		err := database.InsertShortCode(uri, code)
 		if err == nil {
 			finalCode = code
 			break
@@ -91,7 +93,7 @@ func createNewShortCode(database *db.Database, req events.APIGatewayProxyRequest
 	var code string
 	if len(req.Path) > 0 {
 		customCode := strings.TrimPrefix(req.Path, "/")
-		err = database.InsertShortLink(newLink.URI, customCode)
+		err = database.InsertShortCode(newLink.URI, customCode)
 		code = customCode
 	} else {
 		code, err = createLinkWithRandomShortCode(database, newLink.URI)
@@ -107,13 +109,13 @@ func createNewShortCode(database *db.Database, req events.APIGatewayProxyRequest
 	}, nil
 }
 
-func deleteShortCode(db *db.Database, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	if req.Headers["Authorization"] != "Password1!" {
+func deleteShortCode(database *db.Database, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	if !isAuthorized(database, req) {
 		return clientError(http.StatusUnauthorized)
 	}
 
 	path := strings.TrimPrefix(req.Path, "/")
-	err := db.DeleteShortCode(path)
+	err := database.DeleteShortCode(path)
 	if err != nil {
 		return serverError(err)
 	}
@@ -123,7 +125,63 @@ func deleteShortCode(db *db.Database, req events.APIGatewayProxyRequest) (events
 	}, nil
 }
 
-func HandleRequest(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func isAuthorized(database *db.Database, req events.APIGatewayProxyRequest) bool {
+	auth := req.Headers["Authorization"]
+	if len(auth) == 0 {
+		return false
+	}
+
+	result, err := database.GetAPIKey(auth)
+	if err != nil {
+		fmt.Printf("Failed to get API key from database: %s", err.Error())
+		return false
+	}
+
+	return result.Role == "admin"
+}
+
+func generateAPIKey(database *db.Database, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	body := req.Body
+	if req.IsBase64Encoded {
+		decoded, err := b64.StdEncoding.DecodeString(body)
+		if err != nil {
+			return serverError(err)
+		}
+		body = string(decoded)
+	}
+
+	apikeyInput := &db.APIKeyRow{}
+	err := json.Unmarshal([]byte(body), apikeyInput)
+	if err != nil {
+		return clientError(http.StatusUnprocessableEntity)
+	}
+
+	if len(apikeyInput.Role) == 0 {
+		apikeyInput.Role = "admin"
+	}
+
+	count := 0
+	var finalCode string
+	for count < 5 {
+		code := db.GenerateShortCode(26, false)
+		err := database.CreateNewAPIKey(code, apikeyInput.Role)
+		if err == nil {
+			finalCode = code
+			break
+		} else if strings.HasPrefix(err.Error(), dynamodb.ErrCodeConditionalCheckFailedException) {
+			count++
+		} else {
+			return serverError(err)
+		}
+	}
+
+	return events.APIGatewayProxyResponse{
+		StatusCode: http.StatusOK,
+		Body:       finalCode,
+	}, nil
+}
+
+func handleRequest(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
 	database := db.New()
 	switch method := req.HTTPMethod; method {
 	case "GET":
@@ -154,5 +212,5 @@ func serverError(err error) (events.APIGatewayProxyResponse, error) {
 }
 
 func main() {
-	lambda.Start(HandleRequest)
+	lambda.Start(handleRequest)
 }

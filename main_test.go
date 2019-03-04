@@ -16,7 +16,7 @@ func TestExistingCode(t *testing.T) {
 		Body:       "{\"URI\": \"http://imdevinc.com\"}",
 	}
 
-	resp, err := HandleRequest(request)
+	resp, err := handleRequest(request)
 	if err != nil {
 		t.Error(err.Error())
 	} else if resp.StatusCode != 200 {
@@ -35,7 +35,7 @@ func TestGetShortCode(t *testing.T) {
 		Path:       fmt.Sprintf("/%s", code),
 	}
 
-	resp, err := HandleRequest(request)
+	resp, err := handleRequest(request)
 	if err != nil {
 		t.Error(err.Error())
 	} else if resp.StatusCode != 301 {
@@ -56,7 +56,7 @@ func TestCustomShortCode(t *testing.T) {
 		Body:       fmt.Sprintf("{\"URI\": \"%s\"}", URL),
 	}
 
-	resp, err := HandleRequest(request)
+	resp, err := handleRequest(request)
 	if err != nil {
 		t.Error(err.Error())
 	} else if resp.StatusCode != 200 {
@@ -74,7 +74,7 @@ func TestDeleteShortCut(t *testing.T) {
 		Path:       fmt.Sprintf("/%s", code),
 	}
 
-	resp, err := HandleRequest(request)
+	resp, err := handleRequest(request)
 	if err != nil {
 		t.Error(err.Error())
 	} else if resp.StatusCode != 200 {
@@ -91,7 +91,7 @@ func TestCreateNewShortCode(t *testing.T) {
 		Body:       fmt.Sprintf("{\"URI\": \"%s\"}", URL),
 	}
 
-	resp, err := HandleRequest(request)
+	resp, err := handleRequest(request)
 	if err != nil {
 		t.Error(err.Error())
 	} else if resp.StatusCode != 200 {
