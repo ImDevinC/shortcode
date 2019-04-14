@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+            integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+        <link rel="stylesheet" href="./style.css">
+    </head>
+    <body>
+        <div class="container-fluid">
+            <div class="row content">
+                <div class="col">
+                    <h1>Enter the URL to be shortened</h1>
+                    <div class="input-group mb-3">
+                        <input type="text" class="form-control" placeholder="URL" aria-label="URL"
+                            aria-describedby="button-submit-url" id="submission-url"/>
+                        <div class="input-group-append">
+                            <button class="btn btn-secondary" type="button" id="button-submit-url">
+                                Submit URL
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="row result" >
+                <div class="col">
+                    <div class="alert" id="alert-result"></div>
+                </div>
+            </div>
+        </div>
+        <script src="./script.js"></script>
+    </body>
+</html>

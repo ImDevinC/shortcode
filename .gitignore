@@ -1,2 +1,3 @@
-bin/*
-output/*
+.terraform/
+terraform/publish/*
+!terraform/publish/.gitkeep
