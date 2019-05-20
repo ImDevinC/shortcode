@@ -30,6 +30,9 @@ resource "aws_api_gateway_method" "post" {
   resource_id   = "${aws_api_gateway_resource.main.id}"
   http_method   = "POST"
   authorization = "NONE"
+  request_parameters {
+    "method.request.header.Content-Type" = true
+  }
 }
 
 resource "aws_api_gateway_integration" "post" {

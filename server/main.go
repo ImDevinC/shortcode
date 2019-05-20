@@ -71,8 +71,9 @@ func createLinkWithRandomShortCode(database *db.Database, uri string) (string, e
 }
 
 func createNewShortCode(database *db.Database, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	if req.Headers["content-type"] != "application/json" {
-		fmt.Println(req.Headers)
+	contentType := strings.ToLower(req.Headers["Content-Type"])
+	if !strings.HasPrefix(contentType, "application/json") {
+		fmt.Printf("%+v", req)
 		return clientError(http.StatusNotAcceptable)
 	}
 
