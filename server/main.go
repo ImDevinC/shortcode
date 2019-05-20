@@ -3,8 +3,6 @@ package main
 import (
 	b64 "encoding/base64"
 	"encoding/json"
-	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"strings"
@@ -14,10 +12,11 @@ import (
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/service/dynamodb"
+
+	"github.com/rs/zerolog"
 )
 
-var errorLogger = log.New(os.Stderr, "ERROR", log.Llongfile)
-var debugLogger = log.New(os.Stderr, "DEBUG", log.Llongfile)
+var logger = zerolog.New(os.Stderr).With().Timestamp().Logger()
 
 // NewLinkRequest ...
 type NewLinkRequest struct {
@@ -45,7 +44,7 @@ func getLinkFromShortCode(database *db.Database, code string) (events.APIGateway
 func createLinkWithRandomShortCode(database *db.Database, uri string) (string, error) {
 	existingCode, err := database.FindShortCodeByURI(uri)
 	if err != nil {
-		errorLogger.Println(err)
+		logger.Warn().Err(err)
 	}
 
 	if len(existingCode) != 0 {
@@ -71,11 +70,11 @@ func createLinkWithRandomShortCode(database *db.Database, uri string) (string, e
 }
 
 func createNewShortCode(database *db.Database, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-	contentType := strings.ToLower(req.Headers["Content-Type"])
-	if !strings.HasPrefix(contentType, "application/json") {
-		fmt.Printf("%+v", req)
-		return clientError(http.StatusNotAcceptable)
-	}
+	// contentType := strings.ToLower(req.Headers["Content-Type"])
+	// if !strings.HasPrefix(contentType, "application/json") {
+	// 	fmt.Printf("%+v", req)
+	// 	return clientError(http.StatusNotAcceptable)
+	// }
 
 	body := req.Body
 	if req.IsBase64Encoded {
@@ -135,7 +134,7 @@ func isAuthorized(database *db.Database, req events.APIGatewayProxyRequest) bool
 
 	result, err := database.GetAPIKey(auth)
 	if err != nil {
-		fmt.Printf("Failed to get API key from database: %s", err.Error())
+		logger.Info().Err(err).Msg("Failed to get API key from database")
 		return false
 	}
 
@@ -184,6 +183,7 @@ func generateAPIKey(database *db.Database, req events.APIGatewayProxyRequest) (e
 }
 
 func handleRequest(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	database := db.New()
 	switch method := req.HTTPMethod; method {
 	case "GET":
@@ -205,7 +205,7 @@ func clientError(status int) (events.APIGatewayProxyResponse, error) {
 }
 
 func serverError(err error) (events.APIGatewayProxyResponse, error) {
-	errorLogger.Println(err.Error())
+	logger.Error().Err(err)
 
 	return events.APIGatewayProxyResponse{
 		StatusCode: http.StatusInternalServerError,

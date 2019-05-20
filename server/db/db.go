@@ -1,7 +1,6 @@
 package db
 
 import (
-	"fmt"
 	"math/rand"
 	"os"
 	"time"
@@ -91,7 +90,6 @@ func (d *Database) FindShortCodeByURI(uri string) (string, error) {
 // InsertShortCode will create the new specified shortcode pointing
 // to the specified URI
 func (d *Database) InsertShortCode(uri string, code string) error {
-	fmt.Printf("Creating new shortcode %s\n", code)
 	input := &dynamodb.PutItemInput{
 		TableName: aws.String(os.Getenv("DYNAMO_DB_TABLENAME")),
 		Item: map[string]*dynamodb.AttributeValue{
