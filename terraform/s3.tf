@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "main" {
-  bucket        = "shortcode-${terraform.env}"
+  bucket        = "shortcode-${local.tags["environment"]}"
   acl           = "public-read"
   force_destroy = true
 
@@ -9,5 +9,6 @@ resource "aws_s3_bucket" "main" {
 }
 
 output "s3_url" {
-  value = "${aws_s3_bucket.main.website_endpoint}"
+  value = aws_s3_bucket.main.website_endpoint
 }
+

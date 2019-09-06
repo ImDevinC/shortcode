@@ -1,8 +1,8 @@
 resource "aws_dynamodb_table" "main" {
-  name           = "${local.tags["Name"]}"
+  name           = local.tags["Name"]
   hash_key       = "shortcode"
-  write_capacity = "${var.write_capacity}"
-  read_capacity  = "${var.read_capacity}"
+  write_capacity = var.write_capacity
+  read_capacity  = var.read_capacity
 
   attribute {
     name = "shortcode"
@@ -18,7 +18,8 @@ resource "aws_dynamodb_table" "main" {
     name            = "URIIndex"
     hash_key        = "URI"
     projection_type = "ALL"
-    write_capacity  = "${var.write_capacity}"
-    read_capacity   = "${var.read_capacity}"
+    write_capacity  = var.write_capacity
+    read_capacity   = var.read_capacity
   }
 }
+

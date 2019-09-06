@@ -10,9 +10,23 @@ variable "department" {
   default = "engineering"
 }
 
-variable "sla" {}
+variable "sla" {
+}
 
-variable "environment" {}
+variable "environment" {
+}
 
-variable "write_capacity" {}
-variable "read_capacity" {}
+variable "write_capacity" {
+}
+
+variable "read_capacity" {
+}
+
+variable "cidr_list" {
+  type = list(string)
+}
+
+variable "vpc_id" {
+  default = "vpc-0a9d6870"
+}
+

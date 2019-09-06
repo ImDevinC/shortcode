@@ -1,12 +1,12 @@
 resource "aws_iam_role" "main" {
-  name               = "${local.tags["Name"]}"
-  assume_role_policy = "${data.aws_iam_policy_document.assume_lambda.json}"
-  tags               = "${local.tags}"
+  name               = local.tags["Name"]
+  assume_role_policy = data.aws_iam_policy_document.assume_lambda.json
+  tags               = local.tags
 }
 
 resource "aws_iam_role_policy_attachment" "main" {
-  role       = "${aws_iam_role.main.name}"
-  policy_arn = "${aws_iam_policy.main.arn}"
+  role       = aws_iam_role.main.name
+  policy_arn = aws_iam_policy.main.arn
 }
 
 data "aws_iam_policy_document" "assume_lambda" {
@@ -22,8 +22,8 @@ data "aws_iam_policy_document" "assume_lambda" {
 }
 
 resource "aws_iam_policy" "main" {
-  name   = "${local.tags["Name"]}"
-  policy = "${data.aws_iam_policy_document.main.json}"
+  name   = local.tags["Name"]
+  policy = data.aws_iam_policy_document.main.json
 }
 
 data "aws_iam_policy_document" "main" {
@@ -53,3 +53,4 @@ data "aws_iam_policy_document" "main" {
     resources = ["*"]
   }
 }
+
