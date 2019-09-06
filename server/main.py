@@ -8,7 +8,7 @@ from db import DB
 logging.getLogger().setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
 
 
-def generateNewShortcode(event):
+def generate_new_shortcode(event):
     body = json.loads(event['body'] if not event['isBase64Encoded']
                       else base64.b64decode(event['body']))
     if not 'uri' in body:
@@ -19,44 +19,73 @@ def generateNewShortcode(event):
         path = path[1:]
     if path.count('/') > 0:
         return client_error(HTTPStatus.BAD_REQUEST)
-    if len(path) == 0:
-        logging.debug('Create new shortlink with description')
-        db = DB()
-        err = db.insert_short_code(path, uri)
+    if path:
+        code, status = create_named_link(path, uri)
+        if status:
+            return client_error(status)
     else:
-        code, err = createRandomShortlink(uri)
-
-    if err:
-        return client_error(HTTPStatus.INTERNAL_SERVER_ERROR)
+        code, err = create_random_shortlink(uri)
+        if err:
+            return client_error(HTTPStatus.INTERNAL_SERVER_ERROR)
 
     return link_created_response(code, uri)
 
 
-def createRandomShortlink(uri):
-    logging.debug('Create new random shortlink')
-    db = DB()
-    code = db.get_short_code_from_uri(uri)
-    if code:
-        return code, None
+def create_named_link(code, uri):
+    database = DB()
+    exists, _ = database.get_shortcode(code)
+    if exists:
+        return None, HTTPStatus.ALREADY_REPORTED
+
+    err = database.insert_short_code(code, uri, True)
+    if err:
+        return None, HTTPStatus.INTERNAL_SERVER_ERROR
+
+    return code, None
+
+
+def create_random_shortlink(uri):
+    logging.debug('Create new random shortlink for %s', uri)
+    database = DB()
+    codes, _ = database.get_short_code_from_uri(uri)
+    for code in codes:
+        if code and 'custom' in code and not code['custom']['BOOL']:
+            logging.info('Found code %s', code['shortcode']['S'])
+            return code['shortcode']['S'], None
     for _ in range(0, 5):
         code = DB.generate_short_code(5)
-        err = db.insert_short_code(code, uri)
+        logging.info('%s %s', code, uri)
+        err = database.insert_short_code(code, uri, False)
         if err:
             continue
         break
     return code, err
 
 
+def get_uri_from_shortcode(event):
+    path = event['path']
+    if path.startswith('/'):
+        path = path[1:]
+    if path.count('/') > 0 or not path:
+        return return_redirect(os.environ['HOMEPAGE'])
+    code, err = DB().get_shortcode(path)
+    if err:
+        return client_error(HTTPStatus.INTERNAL_SERVER_ERROR)
+    return return_redirect(code['URI']['S'] if code else os.environ['HOMEPAGE'])
+
+
 def main(event, _):
     if event['httpMethod'] == 'POST':
         logging.info('POST event received')
-        logging.debug(generateNewShortcode(event))
+        logging.info(generate_new_shortcode(event))
     elif event['httpMethod'] == 'GET':
         logging.info('GET event received')
+        logging.info(get_uri_from_shortcode(event))
     elif event['httpMethod'] == 'DELETE':
         logging.info('DELETE event received')
     else:
         logging.error('Unknown event type received')
+        logging.info(client_error(HTTPStatus.METHOD_NOT_ALLOWED))
 
 
 def client_error(status_code):
@@ -73,12 +102,22 @@ def link_created_response(shortcode, uri):
     }
 
 
+def return_redirect(url):
+    return {
+        'statusCode': HTTPStatus.FOUND,
+        'headers': [
+            {
+                'Location': url
+            }
+        ]
+    }
+
+
 if __name__ == '__main__':
     sample_event = {
-        'body': 'eyJ0ZXN0IjoiYm9keSJ9',
         'resource': '/{proxy+}',
-        'path': '/',
-        'httpMethod': 'POST',
+        'path': '/imdevinc',
+        'httpMethod': 'Asd',
         'isBase64Encoded': True,
         'queryStringParameters': {
             'foo': 'bar'
@@ -91,111 +130,6 @@ if __name__ == '__main__':
         'pathParameters': {
             'proxy': '/path/to/resource'
         },
-        'stageVariables': {
-            'baz': 'qux'
-        },
         'body': 'eyJ1cmkiOiAiaHR0cHM6Ly9pbWRldmluYy5jb20ifQo=',
-        'headers': {
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Encoding': 'gzip, deflate, sdch',
-            'Accept-Language': 'en-US,en;q=0.8',
-            'Cache-Control': 'max-age=0',
-            'CloudFront-Forwarded-Proto': 'https',
-            'CloudFront-Is-Desktop-Viewer': 'true',
-            'CloudFront-Is-Mobile-Viewer': 'false',
-            'CloudFront-Is-SmartTV-Viewer': 'false',
-            'CloudFront-Is-Tablet-Viewer': 'false',
-            'CloudFront-Viewer-Country': 'US',
-            'Host': '1234567890.execute-api.us-east-1.amazonaws.com',
-            'Upgrade-Insecure-Requests': '1',
-            'User-Agent': 'Custom User Agent String',
-            'Via': '1.1 08f323deadbeefa7af34d5feb414ce27.cloudfront.net (CloudFront)',
-            'X-Amz-Cf-Id': 'cDehVQoZnx43VYQb9j2-nvCh-9z396Uhbp027Y2JvkCPNLmGJHqlaA==',
-            'X-Forwarded-For': '127.0.0.1, 127.0.0.2',
-            'X-Forwarded-Port': '443',
-            'X-Forwarded-Proto': 'https'
-        },
-        'multiValueHeaders': {
-            'Accept': [
-                'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
-            ],
-            'Accept-Encoding': [
-                'gzip, deflate, sdch'
-            ],
-            'Accept-Language': [
-                'en-US,en;q=0.8'
-            ],
-            'Cache-Control': [
-                'max-age=0'
-            ],
-            'CloudFront-Forwarded-Proto': [
-                'https'
-            ],
-            'CloudFront-Is-Desktop-Viewer': [
-                'true'
-            ],
-            'CloudFront-Is-Mobile-Viewer': [
-                'false'
-            ],
-            'CloudFront-Is-SmartTV-Viewer': [
-                'false'
-            ],
-            'CloudFront-Is-Tablet-Viewer': [
-                'false'
-            ],
-            'CloudFront-Viewer-Country': [
-                'US'
-            ],
-            'Host': [
-                '0123456789.execute-api.us-east-1.amazonaws.com'
-            ],
-            'Upgrade-Insecure-Requests': [
-                '1'
-            ],
-            'User-Agent': [
-                'Custom User Agent String'
-            ],
-            'Via': [
-                '1.1 08f323deadbeefa7af34d5feb414ce27.cloudfront.net (CloudFront)'
-            ],
-            'X-Amz-Cf-Id': [
-                'cDehVQoZnx43VYQb9j2-nvCh-9z396Uhbp027Y2JvkCPNLmGJHqlaA=='
-            ],
-            'X-Forwarded-For': [
-                '127.0.0.1, 127.0.0.2'
-            ],
-            'X-Forwarded-Port': [
-                '443'
-            ],
-            'X-Forwarded-Proto': [
-                'https'
-            ]
-        },
-        'requestContext': {
-            'accountId': '123456789012',
-            'resourceId': '123456',
-            'stage': 'prod',
-            'requestId': 'c6af9ac6-7b61-11e6-9a41-93e8deadbeef',
-            'requestTime': '09/Apr/2015:12:34:56 +0000',
-            'requestTimeEpoch': 1428582896000,
-            'identity': {
-                'cognitoIdentityPoolId': None,
-                'accountId': None,
-                'cognitoIdentityId': None,
-                'caller': None,
-                'accessKey': None,
-                'sourceIp': '127.0.0.1',
-                'cognitoAuthenticationType': None,
-                'cognitoAuthenticationProvider': None,
-                'userArn': None,
-                'userAgent': 'Custom User Agent String',
-                'user': None
-            },
-            'path': '/prod/path/to/resource',
-            'resourcePath': '/{proxy+}',
-            'httpMethod': 'POST',
-            'apiId': '1234567890',
-            'protocol': 'HTTP/1.1'
-        }
     }
     main(sample_event, None)

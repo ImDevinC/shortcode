@@ -14,9 +14,10 @@ resource "aws_lambda_function" "main" {
   }
 }
 
-resource "aws_lambda_permission" "main" {
-  action        = "lambda:InvokeFunction"
-  function_name = "${local.tags["Name"]}"
-  principal     = "apigateway.amazonaws.com"
-  source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*/*"
-}
+# resource "aws_lambda_permission" "main" {
+#   action        = "lambda:InvokeFunction"
+#   function_name = "${local.tags["Name"]}"
+#   principal     = "apigateway.amazonaws.com"
+#   source_arn    = "${aws_api_gateway_rest_api.main.execution_arn}/*/*/*"
+# }
+

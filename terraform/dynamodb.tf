@@ -10,13 +10,13 @@ resource "aws_dynamodb_table" "main" {
   }
 
   attribute {
-    name = "uri"
+    name = "URI"
     type = "S"
   }
 
   global_secondary_index {
     name            = "URIIndex"
-    hash_key        = "uri"
+    hash_key        = "URI"
     projection_type = "ALL"
     write_capacity  = "${var.write_capacity}"
     read_capacity   = "${var.read_capacity}"
