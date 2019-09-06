@@ -1,6 +1,7 @@
 resource "aws_s3_bucket" "main" {
-  bucket = "shortcode-${terraform.env}"
-  acl    = "public-read"
+  bucket        = "shortcode-${terraform.env}"
+  acl           = "public-read"
+  force_destroy = true
 
   website {
     index_document = "index.html"
