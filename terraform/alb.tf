@@ -4,6 +4,7 @@ resource "aws_lb" "main" {
   load_balancer_type = "application"
   tags               = local.tags
   subnets            = aws_subnet.main.*.id
+  security_groups    = aws_security_group.main.*.id
 }
 
 resource "aws_lb_listener" "main" {

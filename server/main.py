@@ -5,7 +5,7 @@ import json
 from http import HTTPStatus
 from db import DB
 
-logging.getLogger().setLevel(os.environ.get('LOG_LEVEL', 'INFO'))
+logging.getLogger().setLevel(os.environ.get('LOG_LEVEL', 'INFO').upper())
 
 
 def generate_new_shortcode(event):
@@ -75,61 +75,79 @@ def get_uri_from_shortcode(event):
 
 
 def main(event, _):
+    logging.debug(event)
+    response = client_error(HTTPStatus.METHOD_NOT_ALLOWED)
     if event['httpMethod'] == 'POST':
         logging.info('POST event received')
-        logging.info(generate_new_shortcode(event))
+        response = generate_new_shortcode(event)
     elif event['httpMethod'] == 'GET':
         logging.info('GET event received')
-        logging.info(get_uri_from_shortcode(event))
+        response = get_uri_from_shortcode(event)
     elif event['httpMethod'] == 'DELETE':
         logging.info('DELETE event received')
     else:
         logging.error('Unknown event type received')
-        logging.info(client_error(HTTPStatus.METHOD_NOT_ALLOWED))
+    return response
 
 
 def client_error(status_code):
     return {
         'statusCode': status_code,
-        'body': HTTPStatus(status_code).phrase
+        'statusDescription': HTTPStatus(status_code).phrase,
+        'body': HTTPStatus(status_code).phrase,
+        'headers': {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+        }
     }
 
 
 def link_created_response(shortcode, uri):
     return {
         'statusCode': HTTPStatus.CREATED,
-        'body': json.dumps({'shortCode': shortcode, 'uri': uri})
+        'statusDescription': HTTPStatus(HTTPStatus.CREATED).phrase,
+        'body': json.dumps({'shortCode': shortcode, 'uri': uri}),
+        'headers': {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+        }
     }
 
 
 def return_redirect(url):
     return {
         'statusCode': HTTPStatus.FOUND,
-        'headers': [
-            {
-                'Location': url
-            }
-        ]
+        'statusDescription': HTTPStatus(HTTPStatus.FOUND).phrase,
+        'headers': {
+            'Location': url,
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Headers': '*',
+        }
     }
 
 
 if __name__ == '__main__':
     sample_event = {
-        'resource': '/{proxy+}',
+        'requestContext': {
+            'elb': {
+                'targetGroupArn': 'arn:aws:elasticloadbalancing:us-east-1:950747459100:targetgroup/shortcode-dev/feeafae259184b4d'
+            }
+        },
+        'httpMethod': 'GET',
         'path': '/imdevinc',
-        'httpMethod': 'Asd',
-        'isBase64Encoded': True,
-        'queryStringParameters': {
-            'foo': 'bar'
+        'queryStringParameters': {},
+        'headers': {
+            'accept': '*/*',
+            'accept-encoding': 'gzip, deflate',
+            'connection': 'keep-alive',
+            'host': 'shortcode-dev-1630588222.us-east-1.elb.amazonaws.com',
+            'user-agent': 'HTTPie/1.0.2',
+            'x-amzn-trace-id': 'Root=1-5d755912-6ec8714001ab3380518a8fc0',
+            'x-forwarded-for': '162.223.36.138',
+            'x-forwarded-port': '80',
+            'x-forwarded-proto': 'http'
         },
-        'multiValueQueryStringParameters': {
-            'foo': [
-                'bar'
-            ]
-        },
-        'pathParameters': {
-            'proxy': '/path/to/resource'
-        },
-        'body': 'eyJ1cmkiOiAiaHR0cHM6Ly9pbWRldmluYy5jb20ifQo=',
+        'body': '',
+        'isBase64Encoded': False
     }
     main(sample_event, None)

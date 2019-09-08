@@ -1,4 +1,4 @@
-const url = 'https://fnpqoxz7ll.execute-api.us-east-1.amazonaws.com/main'
+const url = 'http://shortcode-dev-1630588222.us-east-1.elb.amazonaws.com'
 document.querySelector('#button-submit-url').addEventListener('click', () => {
     const submission = document.querySelector('#submission-url').value
     fetch(url, {

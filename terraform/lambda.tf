@@ -1,15 +1,18 @@
 resource "aws_lambda_function" "main" {
-  filename         = "publish/deployment.zip"
-  function_name    = local.tags["Name"]
+  function_name    = local.tags.Name
   role             = aws_iam_role.main.arn
   handler          = "main.main"
-  source_code_hash = filebase64sha256("publish/deployment.zip")
   runtime          = "python3.7"
+  s3_bucket        = aws_s3_bucket.lambda.id
+  s3_key           = "${local.name_env}.zip"
+  source_code_hash = aws_s3_bucket_object.lambda.etag
   tags             = local.tags
 
   environment {
     variables = {
-      DYNAMO_DB_TABLENAME = aws_dynamodb_table.main.name
+      DYNAMODB_TABLE_NAME = aws_dynamodb_table.main.name
+      LOG_LEVEL           = var.log_level
+      HOMEPAGE            = "https://imdevinc.com"
     }
   }
 }

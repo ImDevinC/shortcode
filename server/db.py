@@ -29,15 +29,15 @@ class DB:
             )
 
             if not 'Items' in response or not response['Items']:
-                return None, None
+                return [], None
 
             return response['Items'], None
         except self.client.exceptions.ResourceNotFoundException:
             logging.debug('Existing shortcode for %s not found', uri)
-            return None, None
+            return [], None
         except Exception as ex:
             logging.error(ex)
-            return None, ex
+            return [], ex
 
     def get_shortcode(self, code):
         try:
